@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Barber Pro</title>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-md mx-auto bg-white p-6 rounded-xl shadow-lg">
+        <h1 class="text-2xl font-bold mb-4">Rezervace střihu</h1>
+        
+        <select id="resSelect" class="w-full p-2 border rounded mb-4"></select>
+        <input type="date" id="dateInput" class="w-full p-2 border rounded mb-4" onchange="loadSlots()">
+        
+        <div id="slotsGrid" class="grid grid-cols-3 gap-2"></div>
+    </div>
+
+    <script>
+        async function loadSlots() {
+            const resId = document.getElementById('resSelect').value;
+            const date = document.getElementById('dateInput').value;
+            if(!resId || !date) return;
+
+            const res = await fetch(`/available-slots/?resource_id=${resId}&date=${date}`);
+            const slots = await res.json();
+            const grid = document.getElementById('slotsGrid');
+            grid.innerHTML = slots.map(s => 
+                `<button onclick="book('${s}')" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600">${s}</button>`
+            ).join('');
+        }
+
+        async function book(time) {
+            const date = document.getElementById('dateInput').value;
+            const data = {
+                resource_id: parseInt(document.getElementById('resSelect').value),
+                service_id: 1, // Zde můžeš přidat výběr služby
+                start_time: `${date}T${time}:00`
+            };
+            await fetch('/bookings/', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+            alert("Rezervováno!");
+            loadSlots();
+        }
+        
+        // Načti barbary při startu
+        fetch('/resources/').then(r => r.json()).then(data => {
+            document.getElementById('resSelect').innerHTML = data.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+            loadSlots();
+        });
+    </script>
+</body>
+</html>
